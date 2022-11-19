@@ -1,0 +1,5 @@
+repos:
+  - repo: https://github.com/IamTheFij/ansible-pre-commit
+    rev: v1.0.0
+    hooks:
+      - id: encryption-check

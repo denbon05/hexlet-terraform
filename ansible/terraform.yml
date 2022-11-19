@@ -1,0 +1,46 @@
+---
+- name: Setup infrastructure
+  hosts: local
+  vars:
+    terraform_dir: '{{ playbook_dir }}/../terraform'
+    pvt_key: ~/.ssh/id_rsa
+    infra_state: 'present'
+  tasks:
+    - name: Apply terraform infrastructure (webservers, loadbalancer)
+      community.general.terraform:
+        project_path: '{{ terraform_dir }}'
+        variables:
+          do_token: '{{ do_token }}'
+          pvt_key: '{{ pvt_key }}'
+        force_init: true
+        state: '{{ infra_state }}'
+      register: infra
+
+    # - name: Show infra # TODO: remove
+    #   ansible.builtin.debug:
+    #     var: infra
+
+    - name: Check if webservers host is in file
+      ansible.builtin.lineinfile:
+        state: absent
+        path: '{{ deploy_environment }}/hosts'
+        regexp: '^[webservers]'
+      check_mode: "{{ infra_state == 'present' }}"
+      changed_when: infra_state != 'present'
+      register: webservers_line
+
+    - name: Generate hosts
+      ansible.builtin.lineinfile:
+        line: "{{ lookup('template', 'templates/hosts.j2') }}"
+        path: '{{ deploy_environment }}/hosts'
+        insertafter: '[webservers]'
+        mode: '0644'
+        state: '{{ infra_state }}'
+      when: infra_state == 'present'
+
+    - name: Generate ssh_config
+      ansible.builtin.template:
+        src: templates/ssh_config.j2
+        dest: '{{ deploy_environment }}/ssh_config'
+        mode: '0644'
+      when: infra_state == "present"

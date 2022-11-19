@@ -1,0 +1,5 @@
+.vault-password
+.terraform*
+*.backup
+terraform.tfstate
+ansible/**/ssh_config
